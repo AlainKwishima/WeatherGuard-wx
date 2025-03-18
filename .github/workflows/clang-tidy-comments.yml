@@ -1,0 +1,21 @@
+name: Post clang-tidy Review Comments
+
+on:
+  workflow_run:
+    workflows: ["clang-tidy-review"]
+    types:
+      - completed
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion != 'cancelled' }}
+
+    steps:
+      - name: Post Comments
+        uses: ZedThree/clang-tidy-review/post@v0.20.1
+        with:
+          lgtm_comment_body: ''
+          annotations: false
+          max_comments: 25
+          num_comments_as_exitcode: false

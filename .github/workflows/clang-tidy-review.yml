@@ -1,0 +1,140 @@
+name: clang-tidy-review
+
+on:
+  pull_request:
+    branches:
+      - 'develop'
+
+concurrency:
+  # Cancel in-progress jobs for the same pull request
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - name: linux_clang-tidy_x64
+            os: ubuntu-24.04
+            build_type: Release
+            env_cc: clang-17
+            env_cxx: clang++-17
+            qt_version: 6.8.1
+            qt_arch_aqt: linux_gcc_64
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
+            qt_tools: ''
+            conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
+            conan_profile: scwx-linux_clang-17
+            compiler_packages: clang-17 clang-tidy-17
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    env:
+      CC: ${{ matrix.env_cc }}
+      CXX: ${{ matrix.env_cxx }}
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        path: source
+        submodules: recursive
+
+    - name: Checkout clang-tidy-review Repository
+      uses: actions/checkout@v4
+      with:
+        repository: ZedThree/clang-tidy-review
+        ref: v0.20.1
+        path: clang-tidy-review
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: ${{ matrix.qt_version }}
+        arch: ${{ matrix.qt_arch_aqt }}
+        modules: ${{ matrix.qt_modules }}
+        tools: ${{ matrix.qt_tools }}
+
+    - name: Setup Ubuntu Environment
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      shell: bash
+      run: |
+        sudo apt-get install doxygen \
+                             libfuse2 \
+                             ninja-build \
+                             ${{ matrix.compiler_packages }}
+
+    - name: Setup Python Environment
+      shell: pwsh
+      run: |
+        pip install geopandas `
+                    GitPython
+        pip install --break-system-packages clang-tidy-review/post/clang_tidy_review
+
+    - name: Install Conan Packages
+      shell: pwsh
+      run: |
+        pip install conan
+        conan profile detect -e
+        conan config install `
+          ./source/tools/conan/profiles/${{ matrix.conan_profile }} `
+          -tf profiles
+        mkdir build
+        cd build
+        mkdir conan
+        conan install ../source/ `
+          --remote conancenter `
+          --build missing `
+          --profile:all ${{ matrix.conan_profile }} `
+          --settings:all build_type=${{ matrix.build_type }} `
+          --output-folder ./conan/ `
+          ${{ matrix.conan_package_manager }}
+
+    - name: Autogenerate
+      shell: pwsh
+      run: |
+        cd build
+        cmake ../source/ `
+          -G Ninja `
+          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" `
+          -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES="${{ github.workspace }}/source/external/cmake-conan/conan_provider.cmake" `
+          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/supercell-wx" `
+          -DCONAN_HOST_PROFILE="${{ matrix.conan_profile }}" `
+          -DCONAN_BUILD_PROFILE="${{ matrix.conan_profile }}" `
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=on
+        ninja scwx-qt_generate_counties_db `
+              scwx-qt_generate_versions `
+              scwx-qt_autogen
+
+    - name: Code Review
+      id: review
+      shell: bash
+      run: |
+        cd source
+        review --clang_tidy_binary=clang-tidy-17 \
+               --token=${{ github.token }} \
+               --repo='${{ github.repository }}' \
+               --pr='${{ github.event.pull_request.number }}' \
+               --build_dir='../build' \
+               --base_dir='${{ github.workspace }}/source' \
+               --clang_tidy_checks='' \
+               --config_file='.clang-tidy' \
+               --include='*.[ch],*.[ch]xx,*.[ch]pp,*.[ch]++,*.cc,*.hh' \
+               --exclude='' \
+               --apt-packages='' \
+               --cmake-command='' \
+               --max-comments=25 \
+               --lgtm-comment-body='' \
+               --split_workflow=true \
+               --annotations=false \
+               --parallel=0
+        rsync -avzh --ignore-missing-args clang-tidy-review-output.json ../
+        rsync -avzh --ignore-missing-args clang-tidy-review-metadata.json ../
+        rsync -avzh --ignore-missing-args clang_fixes.json ../
+
+    - name: Upload Review
+      uses: ZedThree/clang-tidy-review/upload@v0.20.1
+
+    - name: Status Check
+      if: steps.review.outputs.total_comments > 0
+      run: exit 1

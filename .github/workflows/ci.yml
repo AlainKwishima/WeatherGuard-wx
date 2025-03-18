@@ -1,0 +1,292 @@
+name: CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'develop'
+  pull_request:
+    branches:
+      - 'develop'
+
+concurrency:
+  # Cancel in-progress jobs for the same pull request
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: win64_msvc2022
+            os: windows-2022
+            build_type: Release
+            env_cc: ''
+            env_cxx: ''
+            compiler: msvc
+            msvc_arch: x64
+            msvc_version: 2022
+            qt_version: 6.8.1
+            qt_arch_aqt: win64_msvc2022_64
+            qt_arch_dir: msvc2022_64
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
+            qt_tools: ''
+            conan_package_manager: ''
+            conan_profile: scwx-win64_msvc2022
+            appimage_arch: ''
+            artifact_suffix: windows-x64
+          - name: linux_gcc_x64
+            os: ubuntu-22.04
+            build_type: Release
+            env_cc: gcc-11
+            env_cxx: g++-11
+            compiler: gcc
+            qt_version: 6.8.1
+            qt_arch_aqt: linux_gcc_64
+            qt_arch_dir: gcc_64
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
+            qt_tools: ''
+            conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
+            conan_profile: scwx-linux_gcc-11
+            appimage_arch: x86_64
+            artifact_suffix: linux-x64
+            compiler_packages: ''
+          - name: linux_clang_x64
+            os: ubuntu-24.04
+            build_type: Release
+            env_cc: clang-17
+            env_cxx: clang++-17
+            compiler: clang
+            qt_version: 6.8.1
+            qt_arch_aqt: linux_gcc_64
+            qt_arch_dir: gcc_64
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
+            qt_tools: ''
+            conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
+            conan_profile: scwx-linux_clang-17
+            appimage_arch: x86_64
+            artifact_suffix: linux-clang-x64
+            compiler_packages: clang-17
+          - name: linux_gcc_arm64
+            os: ubuntu-24.04-arm
+            build_type: Release
+            env_cc: gcc-11
+            env_cxx: g++-11
+            compiler: gcc
+            qt_version: 6.8.1
+            qt_arch_aqt: linux_gcc_arm64
+            qt_arch_dir: gcc_arm64
+            qt_modules: qtimageformats qtmultimedia qtpositioning qtserialport
+            qt_tools: ''
+            conan_package_manager: --conf tools.system.package_manager:mode=install --conf tools.system.package_manager:sudo=True
+            conan_profile: scwx-linux_gcc-11_armv8
+            appimage_arch: aarch64
+            artifact_suffix: linux-arm64
+            compiler_packages: g++-11
+    name: ${{ matrix.name }}
+    env:
+      CC: ${{ matrix.env_cc }}
+      CXX: ${{ matrix.env_cxx }}
+      SCWX_VERSION: v0.4.8
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Setup
+      run: git config --global core.longpaths true
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        path: source
+        submodules: recursive
+
+    - name: Install Qt
+      uses: dpaulat/install-qt-action@b45c67aaa9e0ea77e59a7031ec14a12d5ddf4b35
+      with:
+        version: ${{ matrix.qt_version }}
+        arch: ${{ matrix.qt_arch_aqt }}
+        modules: ${{ matrix.qt_modules }}
+        tools: ${{ matrix.qt_tools }}
+
+    - name: Setup MSVC
+      if: matrix.compiler == 'msvc'
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: ${{ matrix.msvc_arch }}
+        vsversion: ${{ matrix.msvc_version }}
+
+    - name: Setup Ubuntu Environment
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      shell: bash
+      run: |
+        sudo apt-get install doxygen \
+                             libfuse2 \
+                             ninja-build \
+                             ${{ matrix.compiler_packages }}
+
+    - name: Setup Python Environment
+      shell: pwsh
+      run: |
+        pip install geopandas `
+                    GitPython
+
+    - name: Install Conan Packages
+      shell: pwsh
+      run: |
+        pip install conan
+        conan profile detect -e
+        conan config install `
+          ./source/tools/conan/profiles/${{ matrix.conan_profile }} `
+          -tf profiles
+        mkdir build
+        cd build
+        mkdir conan
+        conan install ../source/ `
+          --remote conancenter `
+          --build missing `
+          --profile:all ${{ matrix.conan_profile }} `
+          --settings:all build_type=${{ matrix.build_type }} `
+          --output-folder ./conan/ `
+          ${{ matrix.conan_package_manager }}
+
+    - name: Build Supercell Wx
+      shell: pwsh
+      run: |
+        cd build
+        cmake ../source/ `
+          -G Ninja `
+          -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" `
+          -DCMAKE_PROJECT_TOP_LEVEL_INCLUDES="${{ github.workspace }}/source/external/cmake-conan/conan_provider.cmake" `
+          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/supercell-wx" `
+          -DCONAN_HOST_PROFILE="${{ matrix.conan_profile }}" `
+          -DCONAN_BUILD_PROFILE="${{ matrix.conan_profile }}"
+        ninja supercell-wx wxtest
+
+    - name: Separate Debug Symbols (Linux)
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      shell: bash
+      run: |
+        cd build/
+        cd Release/
+        cd bin/
+        objcopy --only-keep-debug supercell-wx supercell-wx.debug
+        objcopy --strip-debug --strip-unneeded supercell-wx
+        cd ..
+        cd lib/
+        objcopy --only-keep-debug libQMapLibre.so libQMapLibre.so.debug
+        objcopy --strip-debug --strip-unneeded libQMapLibre.so
+
+    - name: Install Supercell Wx
+      shell: pwsh
+      run: |
+        cd build
+        cmake --install . --component supercell-wx
+
+    - name: Collect Artifacts
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      shell: bash
+      run: |
+        pushd supercell-wx/
+        cd lib/
+        ln -s libssl.so.3 libssl.so
+        rm -f libGLX.so*
+        rm -f libOpenGL.so*
+        cd ..
+        mkdir -p plugins/
+        cd plugins/
+        mkdir -p sqldrivers/
+        cp "${RUNNER_WORKSPACE}/Qt/${{ matrix.qt_version }}/${{ matrix.qt_arch_dir }}/plugins/sqldrivers/libqsqlite.so" sqldrivers/
+        cd ..
+        popd
+        tar -czf supercell-wx-${{ matrix.artifact_suffix }}.tar.gz supercell-wx/
+
+    - name: Upload Artifacts (Windows)
+      if: matrix.os == 'windows-2022'
+      uses: actions/upload-artifact@v4
+      with:
+        name: supercell-wx-${{ matrix.artifact_suffix }}
+        path: ${{ github.workspace }}/supercell-wx/
+
+    - name: Upload Debug Artifacts (Windows)
+      if: matrix.os == 'windows-2022'
+      uses: actions/upload-artifact@v4
+      with:
+        name: supercell-wx-debug-${{ matrix.artifact_suffix }}
+        path: ${{ github.workspace }}/build/Release/bin/*.pdb
+
+    - name: Upload Artifacts (Linux)
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: supercell-wx-${{ matrix.artifact_suffix }}
+        path: ${{ github.workspace }}/supercell-wx-${{ matrix.artifact_suffix }}.tar.gz
+
+    - name: Upload Debug Artifacts (Linux)
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: supercell-wx-debug-${{ matrix.artifact_suffix }}
+        path: |
+          ${{ github.workspace }}/build/Release/bin/*.debug
+          ${{ github.workspace }}/build/Release/lib/*.debug
+
+    - name: Build Installer (Windows)
+      if: matrix.os == 'windows-2022'
+      shell: pwsh
+      run: |
+        cd build
+        cpack
+
+    - name: Upload Installer (Windows)
+      if: matrix.os == 'windows-2022'
+      uses: actions/upload-artifact@v4
+      with:
+        name: supercell-wx-installer-${{ matrix.artifact_suffix }}
+        path: ${{ github.workspace }}/build/supercell-wx-*.msi*
+
+    - name: Build AppImage (Linux)
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      env:
+        APPIMAGE_DIR: ${{ github.workspace }}/supercell-wx/
+        LDAI_UPDATE_INFORMATION: gh-releases-zsync|dpaulat|supercell-wx|latest|*${{ matrix.appimage_arch }}.AppImage.zsync
+        LDAI_OUTPUT: supercell-wx-${{ env.SCWX_VERSION }}-${{ matrix.appimage_arch }}.AppImage
+        LINUXDEPLOY_OUTPUT_APP_NAME: supercell-wx
+        LINUXDEPLOY_OUTPUT_VERSION: ${{ env.SCWX_VERSION }}
+      shell: bash
+      run: |
+        wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${{ matrix.appimage_arch }}.AppImage
+        chmod +x linuxdeploy-${{ matrix.appimage_arch }}.AppImage
+        cp "${{ github.workspace }}/source/scwx-qt/res/icons/scwx-256.png" supercell-wx.png
+        cp "${{ github.workspace }}/source/scwx-qt/res/linux/supercell-wx.desktop" .
+        pushd "${{ env.APPIMAGE_DIR }}"
+        mkdir -p usr/
+        mv bin/ usr/
+        mv lib/ usr/
+        mv plugins/ usr/
+        popd
+        ./linuxdeploy-${{ matrix.appimage_arch }}.AppImage --appdir ${{ env.APPIMAGE_DIR }} -i supercell-wx.png -d supercell-wx.desktop
+        ./linuxdeploy-${{ matrix.appimage_arch }}.AppImage --appdir ${{ env.APPIMAGE_DIR }} --output appimage
+        rm -f linuxdeploy-${{ matrix.appimage_arch }}.AppImage
+
+    - name: Upload AppImage (Linux)
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: supercell-wx-appimage-${{ matrix.artifact_suffix }}
+        path: ${{ github.workspace }}/*-${{ matrix.appimage_arch }}.AppImage*
+
+    - name: Test Supercell Wx
+      working-directory: ${{ github.workspace }}/build
+      env:
+        MAPBOX_API_KEY:   ${{ secrets.MAPBOX_API_KEY }}
+        MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
+      run: ctest -C ${{ matrix.build_type }} --exclude-regex test_mln.*
+
+    - name: Upload Test Logs
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: supercell-wx-test-logs-${{ matrix.name }}
+        path: ${{ github.workspace }}/build/Testing/

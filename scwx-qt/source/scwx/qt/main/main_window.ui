@@ -1,0 +1,522 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1024</width>
+    <height>768</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Supercell Wx</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="../../../../scwx-qt.qrc">
+    <normaloff>:/res/icons/scwx-256.ico</normaloff>:/res/icons/scwx-256.ico</iconset>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QHBoxLayout">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>1024</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>&amp;File</string>
+    </property>
+    <widget class="QMenu" name="menu_Open">
+     <property name="title">
+      <string>&amp;Open</string>
+     </property>
+     <addaction name="actionOpenNexrad"/>
+     <addaction name="actionOpenTextEvent"/>
+    </widget>
+    <addaction name="menu_Open"/>
+    <addaction name="separator"/>
+    <addaction name="actionSettings"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>&amp;Help</string>
+    </property>
+    <addaction name="actionUserManual"/>
+    <addaction name="separator"/>
+    <addaction name="actionDiscord"/>
+    <addaction name="actionGitHubRepository"/>
+    <addaction name="separator"/>
+    <addaction name="actionCheckForUpdates"/>
+    <addaction name="actionAboutSupercellWx"/>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>&amp;View</string>
+    </property>
+    <widget class="QMenu" name="menuMapLayers">
+     <property name="title">
+      <string>&amp;Map Layers</string>
+     </property>
+     <addaction name="actionColorTable"/>
+     <addaction name="actionRadarSites"/>
+     <addaction name="actionRadarRange"/>
+    </widget>
+    <addaction name="actionRadarToolbox"/>
+    <addaction name="actionAlerts"/>
+    <addaction name="actionGpsInfo"/>
+    <addaction name="separator"/>
+    <addaction name="menuMapLayers"/>
+   </widget>
+   <widget class="QMenu" name="menuDebug">
+    <property name="title">
+     <string>&amp;Debug</string>
+    </property>
+    <addaction name="actionImGuiDebug"/>
+    <addaction name="separator"/>
+    <addaction name="actionDumpLayerList"/>
+    <addaction name="actionDumpRadarProductRecords"/>
+    <addaction name="separator"/>
+    <addaction name="actionRadarWireframe"/>
+   </widget>
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>&amp;Tools</string>
+    </property>
+    <addaction name="actionPlacefileManager"/>
+    <addaction name="actionLayerManager"/>
+    <addaction name="actionMarkerManager"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuView"/>
+   <addaction name="menuTools"/>
+   <addaction name="menuDebug"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QDockWidget" name="radarToolboxDock">
+   <property name="windowTitle">
+    <string>Radar Toolbox</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="radarToolboxDockContents">
+    <layout class="QVBoxLayout" name="verticalLayout_2">
+     <property name="leftMargin">
+      <number>2</number>
+     </property>
+     <property name="topMargin">
+      <number>2</number>
+     </property>
+     <property name="rightMargin">
+      <number>2</number>
+     </property>
+     <property name="bottomMargin">
+      <number>2</number>
+     </property>
+     <item>
+      <widget class="QScrollArea" name="radarToolboxScrollArea">
+       <property name="frameShape">
+        <enum>QFrame::Shape::NoFrame</enum>
+       </property>
+       <property name="horizontalScrollBarPolicy">
+        <enum>Qt::ScrollBarPolicy::ScrollBarAsNeeded</enum>
+       </property>
+       <property name="sizeAdjustPolicy">
+        <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
+       </property>
+       <property name="widgetResizable">
+        <bool>true</bool>
+       </property>
+       <widget class="QWidget" name="radarToolboxScrollAreaContents">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>0</y>
+          <width>190</width>
+          <height>680</height>
+         </rect>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_6">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QFrame" name="radarInfoFrame">
+           <property name="frameShape">
+            <enum>QFrame::Shape::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Shadow::Raised</enum>
+           </property>
+           <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,0,0">
+            <item row="0" column="2">
+             <widget class="QLabel" name="radarSiteValueLabel">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string notr="true">KLSX</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0" colspan="2">
+             <widget class="QLabel" name="vcpLabel">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="toolTip">
+               <string>Volume Coverage Pattern</string>
+              </property>
+              <property name="text">
+               <string>VCP</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="4">
+             <widget class="QFrame" name="frame">
+              <property name="frameShape">
+               <enum>QFrame::Shape::NoFrame</enum>
+              </property>
+              <property name="frameShadow">
+               <enum>QFrame::Shadow::Raised</enum>
+              </property>
+              <layout class="QHBoxLayout" name="horizontalLayout">
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QToolButton" name="radarSiteHomeButton">
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>13</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>...</string>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../../../../scwx-qt.qrc">
+                   <normaloff>:/res/icons/font-awesome-6/house-solid.svg</normaloff>:/res/icons/font-awesome-6/house-solid.svg</iconset>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QToolButton" name="radarSitePresetsButton">
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>13</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>...</string>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../../../../scwx-qt.qrc">
+                   <normaloff>:/res/icons/font-awesome-6/star-solid.svg</normaloff>:/res/icons/font-awesome-6/star-solid.svg</iconset>
+                 </property>
+                 <property name="popupMode">
+                  <enum>QToolButton::ToolButtonPopupMode::InstantPopup</enum>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item row="0" column="0" colspan="2">
+             <widget class="QLabel" name="radarSiteLabel">
+              <property name="text">
+               <string>Radar Site</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2" colspan="3">
+             <widget class="QLabel" name="radarLocationLabel">
+              <property name="text">
+               <string notr="true">St. Louis, MO</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="2" colspan="3">
+             <widget class="QLabel" name="vcpValueLabel">
+              <property name="text">
+               <string notr="true">35</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="2" colspan="3">
+             <widget class="QLabel" name="vcpDescriptionLabel">
+              <property name="text">
+               <string>Clear Air Mode</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="3">
+             <widget class="QToolButton" name="radarSiteSelectButton">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>13</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>...</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="mapSettingsGroupBox">
+           <property name="title">
+            <string>Map Settings</string>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_5">
+            <item>
+             <widget class="QLabel" name="mapStyleLabel">
+              <property name="text">
+               <string>Map Style</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="mapStyleComboBox"/>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="smoothRadarDataCheckBox">
+              <property name="text">
+               <string>Smooth Radar Data</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="trackLocationCheckBox">
+              <property name="text">
+               <string>Track Location</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <spacer name="radarToolboxSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>20</width>
+             <height>0</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <action name="actionExit">
+   <property name="text">
+    <string>E&amp;xit</string>
+   </property>
+  </action>
+  <action name="actionAboutSupercellWx">
+   <property name="text">
+    <string>About &amp;Supercell Wx...</string>
+   </property>
+  </action>
+  <action name="actionRadarToolbox">
+   <property name="text">
+    <string>Radar &amp;Toolbox</string>
+   </property>
+  </action>
+  <action name="actionOpenNexrad">
+   <property name="text">
+    <string>&amp;NEXRAD Product...</string>
+   </property>
+  </action>
+  <action name="actionOpenTextEvent">
+   <property name="text">
+    <string>Text &amp;Event Product...</string>
+   </property>
+  </action>
+  <action name="actionAlerts">
+   <property name="text">
+    <string>&amp;Alerts</string>
+   </property>
+  </action>
+  <action name="actionImGuiDebug">
+   <property name="text">
+    <string>&amp;ImGui Debug</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>&amp;Settings</string>
+   </property>
+  </action>
+  <action name="actionUserManual">
+   <property name="icon">
+    <iconset resource="../../../../scwx-qt.qrc">
+     <normaloff>:/res/icons/font-awesome-6/book-solid.svg</normaloff>:/res/icons/font-awesome-6/book-solid.svg</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;User Manual</string>
+   </property>
+  </action>
+  <action name="actionDiscord">
+   <property name="icon">
+    <iconset resource="../../../../scwx-qt.qrc">
+     <normaloff>:/res/icons/font-awesome-6/discord.svg</normaloff>:/res/icons/font-awesome-6/discord.svg</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Discord</string>
+   </property>
+  </action>
+  <action name="actionGitHubRepository">
+   <property name="icon">
+    <iconset resource="../../../../scwx-qt.qrc">
+     <normaloff>:/res/icons/font-awesome-6/github.svg</normaloff>:/res/icons/font-awesome-6/github.svg</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;GitHub Repository</string>
+   </property>
+  </action>
+  <action name="actionDumpRadarProductRecords">
+   <property name="text">
+    <string>Dump Radar &amp;Product Records</string>
+   </property>
+  </action>
+  <action name="actionCheckForUpdates">
+   <property name="text">
+    <string>&amp;Check for Updates</string>
+   </property>
+  </action>
+  <action name="actionPlacefileManager">
+   <property name="icon">
+    <iconset resource="../../../../scwx-qt.qrc">
+     <normaloff>:/res/icons/font-awesome-6/earth-americas-solid.svg</normaloff>:/res/icons/font-awesome-6/earth-americas-solid.svg</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Placefile Manager</string>
+   </property>
+  </action>
+  <action name="actionLayerManager">
+   <property name="icon">
+    <iconset resource="../../../../scwx-qt.qrc">
+     <normaloff>:/res/icons/font-awesome-6/layer-group-solid.svg</normaloff>:/res/icons/font-awesome-6/layer-group-solid.svg</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Layer Manager</string>
+   </property>
+  </action>
+  <action name="actionDumpLayerList">
+   <property name="text">
+    <string>Dump &amp;Layer List</string>
+   </property>
+  </action>
+  <action name="actionRadarRange">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Radar &amp;Range</string>
+   </property>
+  </action>
+  <action name="actionColorTable">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Color Table</string>
+   </property>
+  </action>
+  <action name="actionRadarSites">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Radar &amp;Sites</string>
+   </property>
+  </action>
+  <action name="actionGpsInfo">
+   <property name="text">
+    <string>&amp;GPS Info</string>
+   </property>
+  </action>
+  <action name="actionMarkerManager">
+   <property name="icon">
+    <iconset resource="../../../../scwx-qt.qrc">
+     <normaloff>:/res/icons/font-awesome-6/house-solid.svg</normaloff>:/res/icons/font-awesome-6/house-solid.svg</iconset>
+   </property>
+   <property name="text">
+    <string>Location &amp;Marker Manager</string>
+   </property>
+  </action>
+  <action name="actionRadarWireframe">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Radar &amp;Wireframe</string>
+   </property>
+  </action>
+ </widget>
+ <resources>
+  <include location="../../../../scwx-qt.qrc"/>
+ </resources>
+ <connections/>
+</ui>
