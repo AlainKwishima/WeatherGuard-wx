@@ -5,7 +5,7 @@
 
 ## Supported Platforms
 
-Supercell Wx supports the following 64-bit operating systems:
+ supports the following 64-bit operating systems:
 
 - Windows 10 (1809 or later)
 - Windows 11
@@ -18,7 +18,7 @@ Supercell Wx supports the following 64-bit operating systems:
  
 ## Linux Dependencies
 
-Supercell Wx requires the following Linux dependencies:
+ requires the following Linux dependencies:
 
 - Linux/X11 (Wayland works too) with support for GCC 11 and OpenGL 3.3
 - X11/XCB libraries including xcb-cursor
